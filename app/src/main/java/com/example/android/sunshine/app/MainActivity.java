@@ -33,16 +33,24 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.Wearable;
 
 import java.io.IOException;
 
-public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback {
+// Wearable things from http://android-wear-docs.readthedocs.org/en/latest/sync.html
+public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback, GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener {
 
     private final String LOG_TAG = MainActivity.class.getSimpleName();
     private static final String DETAILFRAGMENT_TAG = "DFTAG";
@@ -59,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     private boolean mTwoPane;
     private String mLocation;
     private GoogleCloudMessaging mGcm;
+    private GoogleApiClient googleClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,6 +134,28 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
             // Store regID as null
             storeRegistrationId(this, null);
         }
+
+
+        googleClient = new GoogleApiClient.Builder(this)
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        googleClient.connect();
+    }
+
+    @Override
+    protected void onStop() {
+        if (null != googleClient && googleClient.isConnected())
+            googleClient.disconnect();
+
+        super.onStop();
     }
 
     @Override
@@ -328,4 +359,55 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         editor.putInt(PROPERTY_APP_VERSION, appVersion);
         editor.commit();
     }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
+        testMessage();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Toast.makeText(this, "Conn Fail", Toast.LENGTH_SHORT).show();
+    }
+
+    private void testMessage(){
+        SendToDataLayerThread test = new SendToDataLayerThread("/test");
+        test.execute("This is a test");
+    }
+
+    private class SendToDataLayerThread extends AsyncTask<String, Void, Void> {
+
+        String path;
+
+        public SendToDataLayerThread(String path){
+            this.path = path;
+        }
+
+        @Override
+        protected Void doInBackground(String... values) {
+            String message = values[0];
+
+            NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(googleClient).await();
+            for (Node node : nodes.getNodes()) {
+                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(googleClient, node.getId(), path, message.getBytes()).await();
+                if (result.getStatus().isSuccess()) {
+                    Log.v("myTag", "Message: {" + message + "} sent to: " + node.getDisplayName());
+                }
+                else {
+                    // Log an error
+                    Log.v("myTag", "ERROR: failed to send Message");
+                }
+            }
+
+            return null;
+        }
+    }
+
+
 }
