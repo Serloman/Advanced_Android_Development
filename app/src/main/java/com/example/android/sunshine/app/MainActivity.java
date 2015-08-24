@@ -137,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
 
 
         googleClient = new GoogleApiClient.Builder(this)
-                .addApi(Wearable.API)
+                .addApiIfAvailable(Wearable.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
@@ -377,15 +377,18 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     }
 
     private void testMessage(){
-        SendToDataLayerThread test = new SendToDataLayerThread("/test");
+        SendToDataLayerTask test = new SendToDataLayerTask("/test");
         test.execute("This is a test");
+
+//        SendToDataLayerThread send = new SendToDataLayerThread("/test", "This is a Test");
+//        send.start();
     }
 
-    private class SendToDataLayerThread extends AsyncTask<String, Void, Void> {
+    private class SendToDataLayerTask extends AsyncTask<String, Void, Void> {
 
         String path;
 
-        public SendToDataLayerThread(String path){
+        public SendToDataLayerTask(String path){
             this.path = path;
         }
 
@@ -406,6 +409,31 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
             }
 
             return null;
+        }
+    }
+
+    class SendToDataLayerThread extends Thread {
+        String path;
+        String message;
+
+        // Constructor to send a message to the data layer
+        SendToDataLayerThread(String p, String msg) {
+            path = p;
+            message = msg;
+        }
+
+        public void run() {
+            NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(googleClient).await();
+            for (Node node : nodes.getNodes()) {
+                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(googleClient, node.getId(), path, message.getBytes()).await();
+                if (result.getStatus().isSuccess()) {
+                    Log.v("myTag", "Message: {" + message + "} sent to: " + node.getDisplayName());
+                }
+                else {
+                    // Log an error
+                    Log.v("myTag", "ERROR: failed to send Message");
+                }
+            }
         }
     }
 
