@@ -13,7 +13,7 @@ public class ListenerService extends WearableListenerService {
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
-        if (messageEvent.getPath().equals("/test")) {
+        if (messageEvent.getPath().compareTo("/test")==0) {
             final String message = new String(messageEvent.getData());
 
             broadcastMessage(message);
@@ -28,6 +28,6 @@ public class ListenerService extends WearableListenerService {
         Intent messageIntent = new Intent();
         messageIntent.setAction(Intent.ACTION_SEND);
         messageIntent.putExtra("message", message);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(messageIntent);
+        LocalBroadcastManager.getInstance(this.getApplicationContext()).sendBroadcast(messageIntent);
     }
 }

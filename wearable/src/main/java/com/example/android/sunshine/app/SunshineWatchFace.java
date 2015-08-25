@@ -103,6 +103,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         float mYOffset;
 
         String lastMessage;
+        MessageReceiver mMessageReceiver;
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -115,8 +116,8 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             super.onCreate(holder);
 
             IntentFilter messageFilter = new IntentFilter(Intent.ACTION_SEND);
-            MessageReceiver messageReceiver = new MessageReceiver();
-            LocalBroadcastManager.getInstance(getBaseContext()).registerReceiver(messageReceiver, messageFilter);
+            mMessageReceiver = new MessageReceiver();
+            LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(mMessageReceiver, messageFilter);
 
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(SunshineWatchFace.this)
@@ -142,6 +143,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         @Override
         public void onDestroy() {
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME);
+            LocalBroadcastManager.getInstance(getBaseContext()).unregisterReceiver(mMessageReceiver);
             super.onDestroy();
         }
 
