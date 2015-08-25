@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -41,12 +42,14 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
-import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import java.io.IOException;
+import java.util.Date;
 
 // Wearable things from http://android-wear-docs.readthedocs.org/en/latest/sync.html
 public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback, GoogleApiClient.ConnectionCallbacks,
@@ -363,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     @Override
     public void onConnected(Bundle bundle) {
         Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show();
-        testMessage();
+        updateWatchFace();
     }
 
     @Override
@@ -376,15 +379,15 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         Toast.makeText(this, "Conn Fail", Toast.LENGTH_SHORT).show();
     }
 
-    private void testMessage(){
-        SendToDataLayerTask test = new SendToDataLayerTask("/test");
-        test.execute("This is a test");
+    private void updateWatchFace(){
+        Cursor currentWeather = getCurrentWeather();
 
-//        SendToDataLayerThread send = new SendToDataLayerThread("/test", "This is a Test");
-//        send.start();
+        if(currentWeather != null)
+            new SendToDataLayerTask("/shine").execute(currentWeather);
+
     }
 
-    private class SendToDataLayerTask extends AsyncTask<String, Void, Void> {
+    private class SendToDataLayerTask extends AsyncTask<Cursor, Void, Void>{
 
         String path;
 
@@ -393,48 +396,54 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         }
 
         @Override
-        protected Void doInBackground(String... values) {
-            String message = values[0];
+        protected Void doInBackground(Cursor... values) {
+            Cursor cursor = values[0];
+
+
+            PutDataRequest request = getDataRequest(cursor);
 
             NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(googleClient).await();
-            for (Node node : nodes.getNodes()) {
-                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(googleClient, node.getId(), path, message.getBytes()).await();
-                if (result.getStatus().isSuccess()) {
-                    Log.v("myTag", "Message: {" + message + "} sent to: " + node.getDisplayName());
-                }
-                else {
-                    // Log an error
-                    Log.v("myTag", "ERROR: failed to send Message");
-                }
+            for (final Node node : nodes.getNodes()) {
+
+                Wearable.DataApi.putDataItem(googleClient, request);
+
             }
 
             return null;
         }
+
+        private PutDataRequest getDataRequest(Cursor cursor){
+            double max = cursor.getDouble(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP));
+            double min = cursor.getDouble(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP));
+            int weatherId = cursor.getInt(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID));
+
+            PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(this.path);
+
+            putDataMapRequest.getDataMap().putDouble("max_temp", max);
+            putDataMapRequest.getDataMap().putDouble("min_temp", min);
+            putDataMapRequest.getDataMap().putInt("weather_id", weatherId);
+            putDataMapRequest.getDataMap().putLong("timestamp", new Date().getTime());
+
+            return putDataMapRequest.asPutDataRequest();
+        }
+
     }
 
-    class SendToDataLayerThread extends Thread {
-        String path;
-        String message;
+    private Cursor getCurrentWeather(){
+        String sortOrder = WeatherContract.WeatherEntry.COLUMN_DATE + " ASC";
 
-        // Constructor to send a message to the data layer
-        SendToDataLayerThread(String p, String msg) {
-            path = p;
-            message = msg;
+        String locationSetting = Utility.getPreferredLocation(this);
+        Uri weatherForLocationUri = WeatherContract.WeatherEntry.buildWeatherLocationWithStartDate(
+                locationSetting, System.currentTimeMillis());
+
+        Cursor cursor = this.getContentResolver().query(weatherForLocationUri, null, null, null, sortOrder);
+        if(cursor.getCount()>0){
+            cursor.moveToFirst();
+
+            return cursor;
         }
 
-        public void run() {
-            NodeApi.GetConnectedNodesResult nodes = Wearable.NodeApi.getConnectedNodes(googleClient).await();
-            for (Node node : nodes.getNodes()) {
-                MessageApi.SendMessageResult result = Wearable.MessageApi.sendMessage(googleClient, node.getId(), path, message.getBytes()).await();
-                if (result.getStatus().isSuccess()) {
-                    Log.v("myTag", "Message: {" + message + "} sent to: " + node.getDisplayName());
-                }
-                else {
-                    // Log an error
-                    Log.v("myTag", "ERROR: failed to send Message");
-                }
-            }
-        }
+        return null;
     }
 
 

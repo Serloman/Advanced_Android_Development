@@ -81,11 +81,9 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         private class MessageReceiver extends BroadcastReceiver {
             @Override
             public void onReceive(Context context, Intent intent) {
-                String message = intent.getStringExtra("message");
-
-                lastMessage = message;
-
-                Log.v("Message received", message);
+                maxTemp = intent.getDoubleExtra(ListenerService.ARG_MAX_TEMP, 0);
+                minTemp = intent.getDoubleExtra(ListenerService.ARG_MIN_TEMP, 0);
+                weatherId = intent.getIntExtra(ListenerService.ARG_WEATHER_ID, 0);
             }
         }
 
@@ -102,7 +100,10 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         float mXOffset;
         float mYOffset;
 
-        String lastMessage;
+        double maxTemp;
+        double minTemp;
+        int weatherId;
+
         MessageReceiver mMessageReceiver;
 
         /**
