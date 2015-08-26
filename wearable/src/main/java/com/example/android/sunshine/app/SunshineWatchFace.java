@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
@@ -83,7 +84,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             public void onReceive(Context context, Intent intent) {
                 maxTemp = intent.getDoubleExtra(ListenerService.ARG_MAX_TEMP, 0);
                 minTemp = intent.getDoubleExtra(ListenerService.ARG_MIN_TEMP, 0);
-                weatherId = intent.getIntExtra(ListenerService.ARG_WEATHER_ID, 0);
+                icon = (Bitmap) intent.getParcelableExtra(ListenerService.ARG_WEATHER_ICON);
             }
         }
 
@@ -102,7 +103,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
 
         double maxTemp;
         double minTemp;
-        int weatherId;
+        Bitmap icon;
 
         MessageReceiver mMessageReceiver;
 

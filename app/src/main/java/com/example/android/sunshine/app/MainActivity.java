@@ -22,6 +22,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -42,12 +44,15 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
@@ -416,13 +421,17 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
             double max = cursor.getDouble(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP));
             double min = cursor.getDouble(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP));
             int weatherId = cursor.getInt(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID));
+            Bitmap icon = getWeatherBitmap(Utility.getIconResourceForWeatherCondition(weatherId));
 
             PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(this.path);
 
-            putDataMapRequest.getDataMap().putDouble("max_temp", max);
-            putDataMapRequest.getDataMap().putDouble("min_temp", min);
-            putDataMapRequest.getDataMap().putInt("weather_id", weatherId);
-            putDataMapRequest.getDataMap().putLong("timestamp", new Date().getTime());
+            DataMap map = putDataMapRequest.getDataMap();
+
+            map.putDouble("max_temp", max);
+            map.putDouble("min_temp", min);
+            map.putInt("weather_id", weatherId);
+            map.putLong("timestamp", new Date().getTime());
+            map.putAsset("weather_icon", createAssetFromBitmap(icon));
 
             return putDataMapRequest.asPutDataRequest();
         }
@@ -446,5 +455,15 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         return null;
     }
 
+    private Bitmap getWeatherBitmap(int resourceId){
+        BitmapDrawable drawable = (BitmapDrawable) this.getDrawable(resourceId);
 
+        return drawable.getBitmap();
+    }
+
+    private static Asset createAssetFromBitmap(Bitmap bitmap) {
+        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
+        return Asset.createFromBytes(byteStream.toByteArray());
+    }
 }
