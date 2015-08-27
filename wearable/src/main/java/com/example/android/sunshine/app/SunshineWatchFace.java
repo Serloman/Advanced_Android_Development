@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
  * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
+ * Remember connect to emulated watch adb -s 192.168.x.x:5555 forward tcp:5601 tcp:5601
  */
 public class SunshineWatchFace extends CanvasWatchFaceService {
     private static final Typeface NORMAL_TYPEFACE =
@@ -82,8 +83,8 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         private class MessageReceiver extends BroadcastReceiver {
             @Override
             public void onReceive(Context context, Intent intent) {
-                maxTemp = intent.getDoubleExtra(ListenerService.ARG_MAX_TEMP, 0);
-                minTemp = intent.getDoubleExtra(ListenerService.ARG_MIN_TEMP, 0);
+                maxTemp = intent.getDoubleExtra(ListenerService.ARG_MAX_TEMP, -500);
+                minTemp = intent.getDoubleExtra(ListenerService.ARG_MIN_TEMP, -500);
                 icon = (Bitmap) intent.getParcelableExtra(ListenerService.ARG_WEATHER_ICON);
             }
         }
@@ -104,6 +105,14 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         double maxTemp;
         double minTemp;
         Bitmap icon;
+
+        float minXOffset;
+        float minYOffset;
+        Paint mMinTextPaint;
+
+        float maxXOffset;
+        float maxYOffset;
+        Paint mMaxTextPaint;
 
         MessageReceiver mMessageReceiver;
 
@@ -140,6 +149,29 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
 
             mTime = new Time();
+
+            initMinTemp(resources);
+            initMaxTemp(resources);
+        }
+
+        private void initMinTemp(Resources resources){
+            minXOffset = resources.getDimension(R.dimen.min_temp_x_offset);
+            minYOffset = resources.getDimension(R.dimen.min_temp_y_offset);
+
+            mMinTextPaint = createTextPaint(resources.getColor(R.color.min_temp_text));
+
+            float textSize = resources.getDimension(R.dimen.temp_text_size);
+            mMinTextPaint.setTextSize(textSize);
+        }
+
+        private void initMaxTemp(Resources resources){
+            maxXOffset = resources.getDimension(R.dimen.max_temp_x_offset);
+            maxYOffset = resources.getDimension(R.dimen.max_temp_y_offset);
+
+            mMaxTextPaint = createTextPaint(resources.getColor(R.color.max_temp_text));
+
+            float textSize = resources.getDimension(R.dimen.temp_text_size);
+            mMaxTextPaint.setTextSize(textSize);
         }
 
         @Override
@@ -200,10 +232,8 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             // Load resources that have alternate values for round watches.
             Resources resources = SunshineWatchFace.this.getResources();
             boolean isRound = insets.isRound();
-            mXOffset = resources.getDimension(isRound
-                    ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-            float textSize = resources.getDimension(isRound
-                    ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
+            mXOffset = resources.getDimension(isRound ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
+            float textSize = resources.getDimension(isRound ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
             mTextPaint.setTextSize(textSize);
         }
@@ -238,18 +268,60 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
-            // Draw the background.
+            drawBackground(canvas, bounds);
+            drawTime(canvas, bounds);
 
+            if(!mAmbient)
+                drawTemp(canvas, bounds);
+        }
+
+        private void drawBackground(Canvas canvas, Rect bounds){
             if(mAmbient)
                 canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundAmbientPaint);
             else
                 canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
+        }
 
+        private void drawTemp(Canvas canvas, Rect bounds){
+            drawWeatherIcon(canvas, bounds, icon);
+            drawMinTemp(canvas);
+            drawMaxTemp(canvas);
+        }
+
+        private void drawWeatherIcon(Canvas canvas, Rect bounds, Bitmap icon){
+            if(icon==null)
+                return;
+
+            float startX = (bounds.width() - icon.getWidth())/2;
+            float startY = SunshineWatchFace.this.getResources().getDimension(R.dimen.icon_y_offset); //(bounds.height() - icon.getHeight())/2;
+
+            Resources resources = SunshineWatchFace.this.getResources();
+            mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+
+            canvas.drawBitmap(icon, startX, startY, null);
+        }
+
+        private void drawMinTemp(Canvas canvas){
+            if(minTemp<-300)
+                return;
+
+            canvas.drawText(String.valueOf((int) minTemp), minXOffset, minYOffset, mMinTextPaint);
+        }
+
+        private void drawMaxTemp(Canvas canvas){
+            if(maxTemp<-300)
+                return;
+
+            canvas.drawText(String.valueOf((int)maxTemp), maxXOffset, maxYOffset, mMaxTextPaint);
+        }
+
+        private void drawTime(Canvas canvas, Rect bounds){
             // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
             mTime.setToNow();
             String text = mAmbient
                     ? String.format("%d:%02d", mTime.hour, mTime.minute)
                     : String.format("%d:%02d:%02d", mTime.hour, mTime.minute, mTime.second);
+
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
         }
 

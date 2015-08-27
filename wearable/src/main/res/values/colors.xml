@@ -3,4 +3,7 @@
     <color name="digital_background">#06c4ff</color>
     <color name="digital_background_ambient">#000</color>
     <color name="digital_text">#ffffff</color>
+
+    <color name="min_temp_text">#3447ff</color>
+    <color name="max_temp_text">#ff2638</color>
 </resources>
