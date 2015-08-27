@@ -1,3 +1,12 @@
+# Project 6: Go Ubiquitous
+A watchface for the sunshine app
+
+#Screenshots
+<img style="max-width: 300px;" src="https://raw.githubusercontent.com/Serloman/Advanced_Android_Development/tree/Go_Ubiquitous/screenshots/device-2015-08-28-001310.png">
+<img style="max-width: 300px;" src="https://raw.githubusercontent.com/Serloman/Advanced_Android_Development/tree/Go_Ubiquitous/screenshots/device-2015-08-28-001652.png">
+
+
+
 Advanced Android Sample App
 ===================================
 
