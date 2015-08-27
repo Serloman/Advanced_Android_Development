@@ -236,6 +236,12 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             mXOffset = resources.getDimension(isRound ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
             float textSize = resources.getDimension(isRound ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
+            minXOffset = resources.getDimension(isRound ? R.dimen.min_temp_x_offset_round : R.dimen.min_temp_x_offset);
+            maxXOffset = resources.getDimension(isRound ? R.dimen.max_temp_x_offset_round : R.dimen.max_temp_x_offset);
+
+            minYOffset = resources.getDimension(isRound ? R.dimen.min_temp_y_offset_round : R.dimen.min_temp_y_offset);
+            maxYOffset = resources.getDimension(isRound ? R.dimen.max_temp_y_offset_round : R.dimen.max_temp_y_offset);
+
             mTextPaint.setTextSize(textSize);
         }
 
