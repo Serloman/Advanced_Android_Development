@@ -419,7 +419,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
 
         private PutDataRequest getDataRequest(Cursor cursor){
             double max = cursor.getDouble(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP));
-            double min = cursor.getDouble(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP));
+            double min = cursor.getDouble(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP));
             int weatherId = cursor.getInt(cursor.getColumnIndex(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID));
             Bitmap icon = getWeatherBitmap(Utility.getIconResourceForWeatherCondition(weatherId));
 

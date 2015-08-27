@@ -208,6 +208,7 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
             updateTimer();
         }
 
+
         private void registerReceiver() {
             if (mRegisteredTimeZoneReceiver) {
                 return;
