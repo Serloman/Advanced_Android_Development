@@ -126,6 +126,9 @@ public class SunshineWatchFace extends CanvasWatchFaceService {
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
 
+            maxTemp = -500;
+            minTemp = -500;
+
             IntentFilter messageFilter = new IntentFilter(Intent.ACTION_SEND);
             mMessageReceiver = new MessageReceiver();
             LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(mMessageReceiver, messageFilter);
